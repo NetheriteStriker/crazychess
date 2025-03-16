@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,34 +10,41 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
       margin: 0;
+      padding: 10px;
       background-color: #f0f0f0;
       font-family: Arial, sans-serif;
+      box-sizing: border-box;
     }
     
     #game-container {
       display: flex;
       flex-direction: column;
       align-items: center;
+      width: 100%;
+      max-width: 800px;
     }
     
     #status {
       margin-bottom: 10px;
-      font-size: 18px;
+      font-size: clamp(16px, 4vw, 18px);
       font-weight: bold;
+      text-align: center;
     }
     
     #chessboard {
       display: grid;
-      grid-template-columns: repeat(8, 60px);
-      grid-template-rows: repeat(10, 60px);
+      width: 100%;
+      aspect-ratio: 4/5; /* 8 columns / 10 rows */
       border: 2px solid #333;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(10, 1fr);
     }
     
     .square {
-      width: 60px;
-      height: 60px;
+      width: 100%;
+      height: 100%;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -48,8 +56,10 @@
     .dark { background-color: #b58863; }
     
     .piece {
-      font-size: 40px;
+      font-size: clamp(20px, 6vw, 40px);
       z-index: 1;
+      user-select: none;
+      touch-action: manipulation;
     }
     
     .white { color: white; text-shadow: 0 0 2px black; }
@@ -60,13 +70,36 @@
     .possible-move::after {
       content: '';
       position: absolute;
-      width: 20px;
-      height: 20px;
+      width: 30%;
+      height: 30%;
       background-color: rgba(0, 255, 0, 0.3);
       border-radius: 50%;
     }
     
     .capture { background-color: rgba(255, 0, 0, 0.3); }
+    
+    /* Media queries for different screen sizes */
+    @media screen and (max-width: 480px) {
+      body {
+        padding: 5px;
+      }
+      
+      #chessboard {
+        aspect-ratio: 3.5/5; /* Slightly adjust ratio for very small screens */
+      }
+      
+      .possible-move::after {
+        width: 25%;
+        height: 25%;
+      }
+    }
+    
+    /* Prevent scrolling when touching the board */
+    @media (hover: none) and (pointer: coarse) {
+      .square {
+        touch-action: none;
+      }
+    }
   </style>
 </head>
 <body>

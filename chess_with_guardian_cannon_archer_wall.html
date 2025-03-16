@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom Chess Game</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+      font-family: Arial, sans-serif;
+    }
+    
+    #game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    #status {
+      margin-bottom: 10px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    
+    #chessboard {
+      display: grid;
+      grid-template-columns: repeat(8, 60px);
+      grid-template-rows: repeat(10, 60px);
+      border: 2px solid #333;
+    }
+    
+    .square {
+      width: 60px;
+      height: 60px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      cursor: pointer;
+    }
+    
+    .light { background-color: #f0d9b5; }
+    .dark { background-color: #b58863; }
+    
+    .piece {
+      font-size: 40px;
+      z-index: 1;
+    }
+    
+    .white { color: white; text-shadow: 0 0 2px black; }
+    .black { color: black; text-shadow: 0 0 2px white; }
+    
+    .selected { background-color: rgba(255, 255, 0, 0.5); }
+    
+    .possible-move::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background-color: rgba(0, 255, 0, 0.3);
+      border-radius: 50%;
+    }
+    
+    .capture { background-color: rgba(255, 0, 0, 0.3); }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div id="status">White's turn</div>
+    <div id="chessboard"></div>
+  </div>
+
+  <script>
+    // Game state
+    let board = [];
+    let currentPlayer = 'white';
+    let selectedPiece = null;
+    let possibleMoves = [];
+
+    // Initialize the board
+    function initializeBoard() {
+      board = Array(10).fill().map(() => Array(8).fill(null));
+      
+      // Standard pieces (back rows)
+      // White (bottom)
+      board[9][0] = { type: 'rook', color: 'white' };
+      board[9][1] = { type: 'knight', color: 'white' };
+      board[9][2] = { type: 'bishop', color: 'white' };
+      board[9][3] = { type: 'queen', color: 'white' };
+      board[9][4] = { type: 'king', color: 'white' };
+      board[9][5] = { type: 'bishop', color: 'white' };
+      board[9][6] = { type: 'knight', color: 'white' };
+      board[9][7] = { type: 'rook', color: 'white' };
+      
+      // Black (top)
+      board[0][0] = { type: 'rook', color: 'black' };
+      board[0][1] = { type: 'knight', color: 'black' };
+      board[0][2] = { type: 'bishop', color: 'black' };
+      board[0][3] = { type: 'queen', color: 'black' };
+      board[0][4] = { type: 'king', color: 'black' };
+      board[0][5] = { type: 'bishop', color: 'black' };
+      board[0][6] = { type: 'knight', color: 'black' };
+      board[0][7] = { type: 'rook', color: 'black' };
+      
+      // Second rows with guardians, cannons, and pawns
+      // White
+      board[8][0] = { type: 'guardian', color: 'white' };
+      board[8][1] = { type: 'cannon', color: 'white' };
+      board[8][2] = { type: 'pawn', color: 'white' };
+      board[8][3] = { type: 'pawn', color: 'white' };
+      board[8][4] = { type: 'pawn', color: 'white' };
+      board[8][5] = { type: 'pawn', color: 'white' };
+      board[8][6] = { type: 'cannon', color: 'white' };
+      board[8][7] = { type: 'guardian', color: 'white' };
+      
+      // Black
+      board[1][0] = { type: 'guardian', color: 'black' };
+      board[1][1] = { type: 'cannon', color: 'black' };
+      board[1][2] = { type: 'pawn', color: 'black' };
+      board[1][3] = { type: 'pawn', color: 'black' };
+      board[1][4] = { type: 'pawn', color: 'black' };
+      board[1][5] = { type: 'pawn', color: 'black' };
+      board[1][6] = { type: 'cannon', color: 'black' };
+      board[1][7] = { type: 'guardian', color: 'black' };
+      
+      // Third rows with archers and walls
+      // White
+      board[7][0] = { type: 'archer', color: 'white' };
+      board[7][2] = { type: 'wall', color: 'white' };
+      board[7][3] = { type: 'wall', color: 'white' };
+      board[7][4] = { type: 'wall', color: 'white' };
+      board[7][5] = { type: 'wall', color: 'white' };
+      board[7][7] = { type: 'archer', color: 'white' };
+      
+      // Black
+      board[2][0] = { type: 'archer', color: 'black' };
+      board[2][2] = { type: 'wall', color: 'black' };
+      board[2][3] = { type: 'wall', color: 'black' };
+      board[2][4] = { type: 'wall', color: 'black' };
+      board[2][5] = { type: 'wall', color: 'black' };
+      board[2][7] = { type: 'archer', color: 'black' };
+    }
+
+    // Render the board
+    function renderBoard() {
+      const chessboard = document.getElementById('chessboard');
+      chessboard.innerHTML = '';
+      
+      for (let row = 0; row < 10; row++) {
+        for (let col = 0; col < 8; col++) {
+          const square = document.createElement('div');
+          square.className = 'square ' + ((row + col) % 2 === 0 ? 'light' : 'dark');
+          square.dataset.row = row;
+          square.dataset.col = col;
+          
+          const piece = board[row][col];
+          if (piece) {
+            const pieceElement = document.createElement('div');
+            pieceElement.className = `piece ${piece.color} ${piece.type}`;
+            
+            // Set symbol based on piece type
+            let symbol = '';
+            switch (piece.type) {
+              case 'king': symbol = '♚'; break;
+              case 'queen': symbol = '♛'; break;
+              case 'rook': symbol = '♜'; break;
+              case 'bishop': symbol = '♝'; break;
+              case 'knight': symbol = '♞'; break;
+              case 'pawn': symbol = '♟'; break;
+              case 'guardian': symbol = 'G'; break;
+              case 'cannon': symbol = 'C'; break;
+              case 'archer': symbol = 'A'; break;
+              case 'wall': symbol = 'W'; break;
+            }
+            
+            pieceElement.textContent = symbol;
+            square.appendChild(pieceElement);
+          }
+          
+          square.addEventListener('click', () => handleSquareClick(row, col));
+          chessboard.appendChild(square);
+        }
+      }
+      
+      document.getElementById('status').textContent = currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1) + "'s turn";
+    }
+
+    // Handle click on a square
+    function handleSquareClick(row, col) {
+      const piece = board[row][col];
+      
+      // If no piece is selected yet
+      if (!selectedPiece) {
+        if (piece && piece.color === currentPlayer) {
+          selectedPiece = { row, col, piece };
+          possibleMoves = getPossibleMoves(row, col, piece);
+          highlightPossibleMoves(possibleMoves);
+        }
+      } 
+      // If a piece is already selected
+      else {
+        // Check if the clicked square is a valid move
+        const moveIndex = possibleMoves.findIndex(move => 
+          move.row === row && move.col === col
+        );
+        
+        if (moveIndex >= 0) {
+          const move = possibleMoves[moveIndex];
+          
+          // If it's a guardian capturing, ask for confirmation
+          if (selectedPiece.piece.type === 'guardian' && move.capture) {
+            askGuardianCaptureMethod(selectedPiece, move);
+          } else {
+            makeMove(move);
+          }
+        } else {
+          // Deselect the current piece
+          clearHighlights();
+          selectedPiece = null;
+          
+          // If clicked on own piece, select it
+          if (piece && piece.color === currentPlayer) {
+            selectedPiece = { row, col, piece };
+            possibleMoves = getPossibleMoves(row, col, piece);
+            highlightPossibleMoves(possibleMoves);
+          }
+        }
+      }
+    }
+
+    // Ask user for guardian capture method  
+    function askGuardianCaptureMethod(selectedPiece, move) {  
+      if (confirm('Do you want to capture without moving? OK for capture without moving, Cancel for capture by replacing.')) {  
+        // Capture without moving  
+        const { row, col } = move;  
+        board[row][col] = null; // Remove the captured piece  
+        
+        // Check for win before switching turns  
+        if (checkForWin()) {  
+          return; // Game ended, don't continue  
+        }  
+        
+        // Switch turns and trigger AI  
+        switchTurns();  
+        renderBoard();  
+        
+        // If it's now AI's turn, make AI move  
+        if (currentPlayer === 'black') {  
+          setTimeout(makeAIMove, 500);  
+        }  
+      } else {  
+        // Capture by replacing (normal move)  
+        makeMove(move);  
+      }  
+    }  
+
+    // Make a move  
+    function makeMove(move) {  
+      const { srcRow, srcCol, row, col, captureOnly } = move;  
+      
+      // If it's a captureOnly move (used by archer, cannon)  
+      if (captureOnly) {  
+        board[row][col] = null; // Remove the captured piece  
+      } else {  
+        // Regular move: move the piece from source to destination  
+        board[row][col] = board[srcRow][srcCol];  
+        board[srcRow][srcCol] = null;  
+      }  
+      
+      clearHighlights();  
+      selectedPiece = null;  
+      
+      // Check for win before switching turns  
+      if (checkForWin()) {  
+        return; // Game ended, don't continue  
+      }  
+      
+      // Switch turns and render board  
+      switchTurns();  
+      renderBoard();  
+      
+      // If it's now AI's turn, make AI move  
+      if (currentPlayer === 'black') {  
+        setTimeout(makeAIMove, 500); // Small delay to make AI move visible  
+      }  
+    }  
+
+    // Get all possible moves for a piece
+    function getPossibleMoves(row, col, piece) {
+      const moves = [];
+      
+      switch (piece.type) {
+        case 'pawn': getPawnMoves(row, col, piece, moves); break;
+        case 'rook': getRookMoves(row, col, piece, moves); break;
+        case 'knight': getKnightMoves(row, col, piece, moves); break;
+        case 'bishop': getBishopMoves(row, col, piece, moves); break;
+        case 'queen': getQueenMoves(row, col, piece, moves); break;
+        case 'king': getKingMoves(row, col, piece, moves); break;
+        case 'guardian': getGuardianMoves(row, col, piece, moves); break;
+        case 'cannon': getCannonMoves(row, col, piece, moves); break;
+        case 'archer': getArcherMoves(row, col, piece, moves); break;
+        case 'wall': getWallMoves(row, col, piece, moves); break;
+      }
+      
+      return moves;
+    }
+
+    // Get moves for a pawn
+    function getPawnMoves(row, col, piece, moves) {
+      const direction = piece.color === 'white' ? -1 : 1;
+      const startRow = piece.color === 'white' ? 8 : 1;
+      
+      // Move forward one square
+      if (!isOccupied(row + direction, col)) {
+        moves.push({ srcRow: row, srcCol: col, row: row + direction, col: col });
+        
+        // Move forward two squares if it's the pawn's first move
+        if (row === startRow && !isOccupied(row + 2 * direction, col)) {
+          moves.push({ srcRow: row, srcCol: col, row: row + 2 * direction, col: col });
+        }
+      }
+      
+      // Capture diagonally
+      for (const colOffset of [-1, 1]) {
+        const newCol = col + colOffset;
+        if (isOnBoard(row + direction, newCol)) {
+          const targetPiece = board[row + direction][newCol];
+          if (targetPiece && targetPiece.color !== piece.color && targetPiece.type !== 'wall') {
+            moves.push({ 
+              srcRow: row, 
+              srcCol: col, 
+              row: row + direction, 
+              col: newCol,
+              capture: true 
+            });
+          }
+        }
+      }
+    }
+
+    // Get moves for a rook
+    function getRookMoves(row, col, piece, moves) {
+      // Check in all four directions: up, right, down, left
+      const directions = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+      
+      for (const [dRow, dCol] of directions) {
+        let newRow = row + dRow;
+        let newCol = col + dCol;
+        
+        while (isOnBoard(newRow, newCol)) {
+          const targetPiece = board[newRow][newCol];
+          
+          if (!targetPiece) {
+            moves.push({ srcRow: row, srcCol: col, row: newRow, col: newCol });
+          } else if (targetPiece.color !== piece.color && targetPiece.type !== 'wall') {
+            moves.push({ 
+              srcRow: row, 
+              srcCol: col, 
+              row: newRow, 
+              col: newCol,
+              capture: true 
+            });
+            break;
+          } else {
+            break;
+          }
+          
+          newRow += dRow;
+          newCol += dCol;
+        }
+      }
+    }
+
+    // Get moves for a knight
+    function getKnightMoves(row, col, piece, moves) {
+      const knightMoves = [
+        [-2, -1], [-2, 1], [-1, -2], [-1, 2],
+        [1, -2], [1, 2], [2, -1], [2, 1]
+      ];
+      
+      for (const [dRow, dCol] of knightMoves) {
+        const newRow = row + dRow;
+        const newCol = col + dCol;
+        
+        if (isOnBoard(newRow, newCol)) {
+          const targetPiece = board[newRow][newCol];
+          
+          if (!targetPiece || (targetPiece.color !== piece.color && targetPiece.type !== 'wall')) {
+            moves.push({ 
+              srcRow: row, 
+              srcCol: col, 
+              row: newRow, 
+              col: newCol,
+              capture: targetPiece !== null 
+            });
+          }
+        }
+      }
+    }
+
+    // Get moves for a bishop
+    function getBishopMoves(row, col, piece, moves) {
+      // Check in all four diagonal directions
+      const directions = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+      
+      for (const [dRow, dCol] of directions) {
+        let newRow = row + dRow;
+        let newCol = col + dCol;
+        
+        while (isOnBoard(newRow, newCol)) {
+          const targetPiece = board[newRow][newCol];
+          
+          if (!targetPiece) {
+            moves.push({ srcRow: row, srcCol: col, row: newRow, col: newCol });
+          } else if (targetPiece.color !== piece.color && targetPiece.type !== 'wall') {
+            moves.push({ 
+              srcRow: row, 
+              srcCol: col, 
+              row: newRow, 
+              col: newCol,
+              capture: true 
+            });
+            break;
+          } else {
+            break;
+          }
+          
+          newRow += dRow;
+          newCol += dCol;
+        }
+      }
+    }
+
+    // Get moves for a queen (combination of rook and bishop)
+    function getQueenMoves(row, col, piece, moves) {
+      getRookMoves(row, col, piece, moves);
+      getBishopMoves(row, col, piece, moves);
+    }
+
+    // Get moves for a king
+    function getKingMoves(row, col, piece, moves) {
+      // Check all 8 adjacent squares
+      for (let dRow = -1; dRow <= 1; dRow++) {
+        for (let dCol = -1; dCol <= 1; dCol++) {
+          if (dRow === 0 && dCol === 0) continue;
+          
+          const newRow = row + dRow;
+          const newCol = col + dCol;
+          
+          if (isOnBoard(newRow, newCol)) {
+            const targetPiece = board[newRow][newCol];
+            
+            if (!targetPiece || (targetPiece.color !== piece.color && targetPiece.type !== 'wall')) {
+              moves.push({ 
+                srcRow: row, 
+                srcCol: col, 
+                row: newRow, 
+                col: newCol,
+                capture: targetPiece !== null 
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // Get moves for a guardian (moves like king + can capture without moving)
+    function getGuardianMoves(row, col, piece, moves) {
+      // Regular king-like moves
+      getKingMoves(row, col, piece, moves);
+      
+      // Add capture-without-moving options
+      // Check all 8 adjacent squares for enemy pieces
+      for (let dRow = -1; dRow <= 1; dRow++) {
+        for (let dCol = -1; dCol <= 1; dCol++) {
+          if (dRow === 0 && dCol === 0) continue;
+          
+          const newRow = row + dRow;
+          const newCol = col + dCol;
+          
+          if (isOnBoard(newRow, newCol)) {
+            const targetPiece = board[newRow][newCol];
+            
+            if (targetPiece && targetPiece.color !== piece.color && targetPiece.type !== 'wall') {
+              // Add capture-without-moving as a separate move
+              moves.push({ 
+                srcRow: row, 
+                srcCol: col, 
+                row: newRow, 
+                col: newCol,
+                capture: true
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // Get moves for a cannon (cannot move, captures in row/column within 4 squares)
+    function getCannonMoves(row, col, piece, moves) {
+      // Cannon cannot move, but can capture in four directions within 4 squares
+      const directions = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+      
+      for (const [dRow, dCol] of directions) {
+        for (let distance = 1; distance <= 4; distance++) {
+          const newRow = row + dRow * distance;
+          const newCol = col + dCol * distance;
+          
+          if (!isOnBoard(newRow, newCol)) break;
+          
+          const targetPiece = board[newRow][newCol];
+          
+          if (targetPiece) {
+            if (targetPiece.color !== piece.color && targetPiece.type !== 'wall') {
+              // Add capture-without-moving (captureOnly flag)
+              moves.push({ 
+                srcRow: row, 
+                srcCol: col, 
+                row: newRow, 
+                col: newCol,
+                capture: true,
+                captureOnly: true
+              });
+            }
+            break; // Can't capture through pieces
+          }
+        }
+      }
+    }
+
+    // Get moves for an archer (moves like king + captures without moving within 3 squares)
+    function getArcherMoves(row, col, piece, moves) {
+      // Regular king-like moves
+      getKingMoves(row, col, piece, moves);
+      
+      // Capture without moving in 8 directions within 3 squares
+      const directions = [
+        [-1, 0], [0, 1], [1, 0], [0, -1], // Orthogonal
+        [-1, -1], [-1, 1], [1, -1], [1, 1] // Diagonal
+      ];
+      
+      for (const [dRow, dCol] of directions) {
+        for (let distance = 1; distance <= 3; distance++) {
+          const newRow = row + dRow * distance;
+          const newCol = col + dCol * distance;
+          
+          if (!isOnBoard(newRow, newCol)) break;
+          
+          const targetPiece = board[newRow][newCol];
+          
+          if (targetPiece) {
+            if (targetPiece.color !== piece.color && targetPiece.type !== 'wall') {
+              // Add capture-without-moving
+              moves.push({ 
+                srcRow: row, 
+                srcCol: col, 
+                row: newRow, 
+                col: newCol,
+                capture: true,
+                captureOnly: true
+              });
+            }
+            break; // Can't capture through pieces
+          }
+        }
+      }
+    }
+
+    // Get moves for a wall (moves 1-2 squares in row/column if adjacent to friendly piece)
+    function getWallMoves(row, col, piece, moves) {
+      // Check if adjacent to any friendly piece
+      let adjacentToFriendly = false;
+      
+      for (let dRow = -1; dRow <= 1; dRow++) {
+        for (let dCol = -1; dCol <= 1; dCol++) {
+          if (dRow === 0 && dCol === 0) continue;
+          
+          const adjRow = row + dRow;
+          const adjCol = col + dCol;
+          
+          if (isOnBoard(adjRow, adjCol)) {
+            const adjPiece = board[adjRow][adjCol];
+            if (adjPiece && adjPiece.color === piece.color) {
+              adjacentToFriendly = true;
+              break;
+            }
+          }
+        }
+        if (adjacentToFriendly) break;
+      }
+      
+      // If not adjacent to friendly piece, cannot move
+      if (!adjacentToFriendly) return;
+      
+      // Can move 1-2 squares in row/column
+      const directions = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+      
+      for (const [dRow, dCol] of directions) {
+        for (let distance = 1; distance <= 2; distance++) {
+          const newRow = row + dRow * distance;
+          const newCol = col + dCol * distance;
+          
+          if (!isOnBoard(newRow, newCol)) break;
+          
+          const targetPiece = board[newRow][newCol];
+          
+          if (!targetPiece) {
+            moves.push({ srcRow: row, srcCol: col, row: newRow, col: newCol });
+          } else {
+            break; // Can't move through pieces
+          }
+        }
+      }
+    }
+
+    // Helper function to check if a position is on the board
+    function isOnBoard(row, col) {
+      return row >= 0 && row < 10 && col >= 0 && col < 8;
+    }
+
+    // Helper function to check if a position is occupied
+    function isOccupied(row, col) {
+      if (!isOnBoard(row, col)) return true;  
+      return board[row][col] !== null;  
+    }  
+
+    // Highlight possible moves on the board  
+    function highlightPossibleMoves(moves) {  
+      // First, clear any existing highlights  
+      clearHighlights();  
+      
+      // Select the piece  
+      const pieceSquare = document.querySelector(`.square[data-row="${selectedPiece.row}"][data-col="${selectedPiece.col}"]`);  
+      pieceSquare.classList.add('selected');  
+      
+      // Highlight possible moves  
+      for (const move of moves) {  
+        const square = document.querySelector(`.square[data-row="${move.row}"][data-col="${move.col}"]`);  
+        square.classList.add('possible-move');  
+        
+        if (move.capture) {  
+          square.classList.add('capture');  
+        }  
+      }  
+    }  
+
+    // Clear all highlights  
+    function clearHighlights() {  
+      const squares = document.querySelectorAll('.square');  
+      squares.forEach(square => {  
+        square.classList.remove('selected', 'possible-move', 'capture');  
+      });  
+    }  
+
+    // Switch turns between players  
+    function switchTurns() {  
+      currentPlayer = currentPlayer === 'white' ? 'black' : 'white';  
+    }  
+    // Check if the game has been won (king captured)  
+    function checkForWin() {  
+      let whiteKingExists = false;  
+      let blackKingExists = false;  
+      
+      // Check if both kings still exist on the board  
+      for (let row = 0; row < 10; row++) {  
+        for (let col = 0; col < 8; col++) {  
+          const piece = board[row][col];  
+          if (piece && piece.type === 'king') {  
+            if (piece.color === 'white') whiteKingExists = true;  
+            if (piece.color === 'black') blackKingExists = true;  
+          }  
+        }  
+      }  
+      
+      if (!whiteKingExists) {  
+        alert('Black wins! White king has been captured.');  
+        initializeBoard();  
+        currentPlayer = 'white';  
+        renderBoard();  
+        return true;  
+      } else if (!blackKingExists) {  
+        alert('White wins! Black king has been captured.');  
+        initializeBoard();  
+        currentPlayer = 'white';  
+        renderBoard();  
+        return true;  
+      }  
+      
+      return false;  
+    }  
+
+
+    // AI move generation (simple computer opponent)  
+    function makeAIMove() {  
+      const allPossibleMoves = [];  
+      
+      // Collect all possible moves for all black pieces  
+      for (let row = 0; row < 10; row++) {  
+        for (let col = 0; col < 8; col++) {  
+          const piece = board[row][col];  
+          if (piece && piece.color === 'black') {  
+            const moves = getPossibleMoves(row, col, piece);  
+            for (const move of moves) {  
+              allPossibleMoves.push({  
+                srcRow: row,  
+                srcCol: col,  
+                ...move  
+              });  
+            }  
+          }  
+        }  
+      }  
+      
+      if (allPossibleMoves.length === 0) {  
+        alert("Black has no legal moves. White wins!");  
+        initializeBoard();  
+        currentPlayer = 'white';  
+        renderBoard();  
+        return;  
+      }  
+      
+      // Prioritize moves  
+      allPossibleMoves.sort((a, b) => {  
+        // Capturing king is highest priority  
+        const aTargetPiece = board[a.row][a.col];  
+        const bTargetPiece = board[b.row][b.col];  
+        
+        if (aTargetPiece && aTargetPiece.type === 'king') return -1;  
+        if (bTargetPiece && bTargetPiece.type === 'king') return 1;  
+        
+        // Capturing pieces is second priority  
+        if (aTargetPiece && !bTargetPiece) return -1;  
+        if (!aTargetPiece && bTargetPiece) return 1;  
+        
+        // Higher value pieces have higher priority  
+        if (aTargetPiece && bTargetPiece) {  
+          const pieceValues = {  
+            'pawn': 1,  
+            'knight': 3,  
+            'bishop': 3,  
+            'rook': 5,  
+            'queen': 9,  
+            'guardian': 4,  
+            'cannon': 4,  
+            'archer': 5,  
+            'wall': 2  
+          };  
+          
+          return pieceValues[bTargetPiece.type] - pieceValues[aTargetPiece.type];  
+        }  
+        
+        // Add some randomness  
+        return Math.random() - 0.5;  
+      });  
+      
+      // Make the highest priority move  
+      const bestMove = allPossibleMoves[0];  
+      
+      // For easier debugging  
+      console.log("AI is moving:", bestMove);  
+      
+      // If it's a guardian capturing, decide whether to capture without moving or move  
+      if (board[bestMove.srcRow][bestMove.srcCol].type === 'guardian' && bestMove.capture) {  
+        // 50% chance to capture without moving  
+        if (Math.random() < 0.5 && !bestMove.captureOnly) {  
+          board[bestMove.row][bestMove.col] = null; // Remove the captured piece  
+        } else {  
+          // Regular move with capture  
+          board[bestMove.row][bestMove.col] = board[bestMove.srcRow][bestMove.srcCol];  
+          board[bestMove.srcRow][bestMove.srcCol] = null;  
+        }  
+      } else if (bestMove.captureOnly) {  
+        // Handle captureOnly moves (cannon, archer)  
+        board[bestMove.row][bestMove.col] = null; // Remove the captured piece  
+      } else {  
+        // Regular move  
+        board[bestMove.row][bestMove.col] = board[bestMove.srcRow][bestMove.srcCol];  
+        board[bestMove.srcRow][bestMove.srcCol] = null;  
+      }  
+      
+      // Check for win, switch turns, render board  
+      if (!checkForWin()) {  
+        switchTurns();  
+        renderBoard();  
+      }  
+    }  
+
+
+    // Initialize and start the game  
+    function startGame() {  
+      initializeBoard();  
+      renderBoard();  
+    }  
+
+    // When the page loads, start the game  
+    window.onload = startGame;  
+  </script>  
+</body>  
+</html>

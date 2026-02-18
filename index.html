@@ -37,6 +37,18 @@
       font-weight: bold;  
       text-align: center;  
     }  
+
+    #controls {
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #difficulty-level {
+      padding: 5px;
+      font-size: 16px;
+    }
     
     #chessboard {  
       display: grid;  
@@ -62,19 +74,11 @@
     .dark { background-color: #b58863; }  
     
     .piece {  
-      font-size: 8vmin;  
+      width: 90%;
+      height: 90%;
       z-index: 1;  
       user-select: none;  
     }  
-    
-    @media (min-width: 600px) {  
-      .piece {  
-        font-size: 50px;  
-      }  
-    }  
-    
-    .white { color: white; text-shadow: 0 0 2px black; }  
-    .black { color: black; text-shadow: 0 0 2px white; }  
     
     .selected { background-color: rgba(255, 255, 0, 0.5); }  
     
@@ -151,20 +155,29 @@
 </head>  
 <body>  
   <div id="game-container">  
+    <div id="controls">
+      <label for="difficulty-level">Difficulty:</label>
+      <select id="difficulty-level">
+        <option value="easy">Easy (Dumbest)</option>
+        <option value="medium">Medium (Smarter)</option>
+        <option value="advanced">Advanced (Even Smarter)</option>
+        <option value="grandmaster">Grandmaster (Smartest)</option>
+      </select>
+    </div>
     <div id="chessboard"></div>  
     <div id="status">White's turn</div>  
     <button id="toggle-instructions">Show Instructions</button>  
     <div id="instructions" class="hidden">  
       <h2>Special Pieces Instructions</h2>  
       
-      <h3><span class="piece-symbol">G</span> Guardian</h3>  
+      <h3><img src="assets/pieces/white_guardian.svg" style="width:1.5em;vertical-align:middle;" alt="Guardian"> Guardian</h3>
       <p>The Guardian moves like a king (one square in any direction) but has a special ability:</p>  
       <ul>  
         <li>It can capture adjacent enemy pieces without moving.</li>  
         <li>When capturing with a Guardian, you'll be asked if you want to capture without moving (select OK) or capture by moving to that square (select Cancel).</li>  
       </ul>  
 
-      <h3><span class="piece-symbol">A</span> Archer</h3>  
+      <h3><img src="assets/pieces/white_archer.svg" style="width:1.5em;vertical-align:middle;" alt="Archer"> Archer</h3>
       <p>The Archer combines movement and ranged attack:</p>  
       <ul>  
         <li>Moves like a king (one square in any direction).</li>  
@@ -172,7 +185,7 @@
         <li>Cannot shoot through other pieces.</li>  
       </ul>  
 
-      <h3><span class="piece-symbol">C</span> Cannon</h3>  
+      <h3><img src="assets/pieces/white_cannon.svg" style="width:1.5em;vertical-align:middle;" alt="Cannon"> Cannon</h3>
       <p>The Cannon is a stationary piece with ranged attack:</p>  
       <ul>  
         <li>Cannot move around the board.</li>  
@@ -180,7 +193,7 @@
         <li>Cannot shoot through other pieces.</li>  
       </ul>  
 
-      <h3><span class="piece-symbol">W</span> Wall</h3>  
+      <h3><img src="assets/pieces/white_wall.svg" style="width:1.5em;vertical-align:middle;" alt="Wall"> Wall</h3>
       <p>The Wall is a defensive piece with limited mobility:</p>  
       <ul>  
         <li>Can move 1-2 squares horizontally or vertically (not diagonally).</li>  
@@ -276,40 +289,10 @@
           
           const piece = board[row][col];  
           if (piece) {  
-            const pieceElement = document.createElement('div');  
-            pieceElement.className = `piece ${piece.color} ${piece.type}`;  
-            
-            // Set symbol based on piece type and color  
-            let symbol = '';  
-            if (piece.color === 'white') {  
-              switch (piece.type) {  
-                case 'king': symbol = '♔'; break;  
-                case 'queen': symbol = '♕'; break;  
-                case 'rook': symbol = '♖'; break;  
-                case 'bishop': symbol = '♗'; break;  
-                case 'knight': symbol = '♘'; break;  
-                case 'pawn': symbol = '♙'; break;  
-                case 'guardian': symbol = 'G'; break;  
-                case 'cannon': symbol = 'C'; break;  
-                case 'archer': symbol = 'A'; break;  
-                case 'wall': symbol = 'W'; break;  
-              }  
-            } else { // black pieces  
-              switch (piece.type) {  
-                case 'king': symbol = '♚'; break;  
-                case 'queen': symbol = '♛'; break;  
-                case 'rook': symbol = '♜'; break;  
-                case 'bishop': symbol = '♝'; break;  
-                case 'knight': symbol = '♞'; break;  
-                case 'pawn': symbol = '♟'; break;  
-                case 'guardian': symbol = 'G'; break;  
-                case 'cannon': symbol = 'C'; break;  
-                case 'archer': symbol = 'A'; break;  
-                case 'wall': symbol = 'W'; break;  
-              }  
-            }  
-            
-            pieceElement.textContent = symbol;  
+            const pieceElement = document.createElement('img');
+            pieceElement.className = `piece`;
+            pieceElement.src = `assets/pieces/${piece.color}_${piece.type}.svg`;
+            pieceElement.alt = `${piece.color} ${piece.type}`;
             square.appendChild(pieceElement);  
           }  
           
@@ -624,7 +607,8 @@
                 srcCol: col,   
                 row: newRow,   
                 col: newCol,  
-                capture: true  
+                capture: true,
+                captureOnly: true
               });  
             }  
           }  
@@ -826,99 +810,208 @@
     }  
 
 
-    // AI move generation (simple computer opponent)  
-    function makeAIMove() {  
-      const allPossibleMoves = [];  
+    // --- AI Logic ---
+
+    const PIECE_VALUES = {
+      'king': 20000,
+      'queen': 900,
+      'rook': 500,
+      'bishop': 330,
+      'knight': 320,
+      'pawn': 100,
+      'guardian': 400,
+      'cannon': 450,
+      'archer': 500,
+      'wall': 200
+    };
+
+    function evaluateBoard() {
+      let score = 0;
+      for (let row = 0; row < 10; row++) {
+        for (let col = 0; col < 8; col++) {
+          const piece = board[row][col];
+          if (piece) {
+            const value = PIECE_VALUES[piece.type] || 0;
+            score += piece.color === 'white' ? value : -value;
+          }
+        }
+      }
+      return score;
+    }
+
+    function doMove(move) {
+      const { srcRow, srcCol, row, col, captureOnly } = move;
+      const capturedPiece = board[row][col];
+      const movedPiece = board[srcRow][srcCol];
+
+      if (captureOnly) {
+        board[row][col] = null;
+      } else {
+        board[row][col] = movedPiece;
+        board[srcRow][srcCol] = null;
+      }
+      return { move, capturedPiece, movedPiece };
+    }
+
+    function undoMove(undoInfo) {
+      const { move, capturedPiece, movedPiece } = undoInfo;
+      const { srcRow, srcCol, row, col, captureOnly } = move;
+
+      if (captureOnly) {
+        board[row][col] = capturedPiece;
+      } else {
+        board[srcRow][srcCol] = movedPiece;
+        board[row][col] = capturedPiece;
+      }
+    }
+
+    function getAllMoves(color) {
+      const allMoves = [];
+      for (let row = 0; row < 10; row++) {
+        for (let col = 0; col < 8; col++) {
+          const piece = board[row][col];
+          if (piece && piece.color === color) {
+            const moves = getPossibleMoves(row, col, piece);
+            for (const move of moves) {
+              allMoves.push({ ...move, srcRow: row, srcCol: col });
+            }
+          }
+        }
+      }
+      return allMoves;
+    }
+
+    function minimax(depth, alpha, beta, isMaximizing) {
+      if (depth === 0) {
+        return evaluateBoard();
+      }
+
+      const color = isMaximizing ? 'white' : 'black';
+      const moves = getAllMoves(color);
       
-      // Collect all possible moves for all black pieces  
-      for (let row = 0; row < 10; row++) {  
-        for (let col = 0; col < 8; col++) {  
-          const piece = board[row][col];  
-          if (piece && piece.color === 'black') {  
-            const moves = getPossibleMoves(row, col, piece);  
-            for (const move of moves) {  
-              allPossibleMoves.push({  
-                srcRow: row,  
-                srcCol: col,  
-                ...move  
-              });  
-            }  
-          }  
-        }  
-      }  
+      if (moves.length === 0) {
+         return evaluateBoard();
+      }
       
-      if (allPossibleMoves.length === 0) {  
-        alert("Black has no legal moves. White wins!");  
-        initializeBoard();  
-        currentPlayer = 'white';  
-        renderBoard();  
-        return;  
-      }  
+      // Sort moves for better pruning (captures first)
+      moves.sort((a, b) => (b.capture ? 1 : 0) - (a.capture ? 1 : 0));
+
+      if (isMaximizing) {
+        let maxEval = -Infinity;
+        for (const move of moves) {
+          const undoInfo = doMove(move);
+          // Check for King capture (instant win)
+          if (undoInfo.capturedPiece && undoInfo.capturedPiece.type === 'king') {
+             undoMove(undoInfo);
+             return 100000 + depth;
+          }
+
+          const eval = minimax(depth - 1, alpha, beta, false);
+          undoMove(undoInfo);
+          maxEval = Math.max(maxEval, eval);
+          alpha = Math.max(alpha, eval);
+          if (beta <= alpha) break;
+        }
+        return maxEval;
+      } else {
+        let minEval = Infinity;
+        for (const move of moves) {
+          const undoInfo = doMove(move);
+          // Check for King capture (instant win for black)
+          if (undoInfo.capturedPiece && undoInfo.capturedPiece.type === 'king') {
+             undoMove(undoInfo);
+             return -100000 - depth;
+          }
+
+          const eval = minimax(depth - 1, alpha, beta, true);
+          undoMove(undoInfo);
+          minEval = Math.min(minEval, eval);
+          beta = Math.min(beta, eval);
+          if (beta <= alpha) break;
+        }
+        return minEval;
+      }
+    }
+
+    // AI move generation
+    function makeAIMove() {
+      const difficulty = document.getElementById('difficulty-level').value;
+      let depth = 1;
       
-      // Prioritize moves  
-      allPossibleMoves.sort((a, b) => {  
-        // Capturing king is highest priority  
-        const aTargetPiece = board[a.row][a.col];  
-        const bTargetPiece = board[b.row][b.col];  
+      // Map difficulty to depth (BFS/DFS level determines intelligence)
+      switch (difficulty) {
+        case 'easy': depth = 1; break; // Dumbest
+        case 'medium': depth = 2; break; // Smarter
+        case 'advanced': depth = 3; break; // Even smarter
+        case 'grandmaster': depth = 4; break; // Smartest (simulating high steps)
+      }
+
+      // Add a status message
+      const statusEl = document.getElementById('status');
+      const originalText = statusEl.textContent;
+      statusEl.textContent = `AI is thinking (${difficulty} mode)...`;
+
+      // Use setTimeout to allow the UI to update
+      setTimeout(() => {
+        const moves = getAllMoves('black');
         
-        if (aTargetPiece && aTargetPiece.type === 'king') return -1;  
-        if (bTargetPiece && bTargetPiece.type === 'king') return 1;  
+        if (moves.length === 0) {
+          statusEl.textContent = originalText;
+          alert("Black has no legal moves. White wins!");
+          initializeBoard();
+          currentPlayer = 'white';
+          renderBoard();
+          return;
+        }
+
+        let bestMove = null;
+        let bestValue = Infinity; // Black minimizes score (negative is better for black)
         
-        // Capturing pieces is second priority  
-        if (aTargetPiece && !bTargetPiece) return -1;  
-        if (!aTargetPiece && bTargetPiece) return 1;  
-        
-        // Higher value pieces have higher priority  
-        if (aTargetPiece && bTargetPiece) {  
-          const pieceValues = {  
-            'pawn': 1,  
-            'knight': 3,  
-            'bishop': 3,  
-            'rook': 5,  
-            'queen': 9,  
-            'guardian': 4,  
-            'cannon': 4,  
-            'archer': 5,  
-            'wall': 2  
-          };  
+        // Root level of minimax to find the best move
+        // Sort moves to improve pruning
+        moves.sort((a, b) => (b.capture ? 1 : 0) - (a.capture ? 1 : 0));
+
+        for (const move of moves) {
+          const undoInfo = doMove(move);
+          // Check for instant win (capturing king)
+          if (undoInfo.capturedPiece && undoInfo.capturedPiece.type === 'king') {
+             undoMove(undoInfo);
+             bestMove = move;
+             bestValue = -Infinity; // Ensure this move is picked
+             break;
+          }
+
+          const moveValue = minimax(depth - 1, -Infinity, Infinity, true); // Next is white (max)
+          undoMove(undoInfo);
           
-          return pieceValues[bTargetPiece.type] - pieceValues[aTargetPiece.type];  
-        }  
+          if (moveValue < bestValue) {
+            bestValue = moveValue;
+            bestMove = move;
+          }
+        }
         
-        // Add some randomness  
-        return Math.random() - 0.5;  
-      });  
-      
-      // Make the highest priority move  
-      const bestMove = allPossibleMoves[0];  
-      
-      // For easier debugging  
-      console.log("AI is moving:", bestMove);  
-      
-      // If it's a guardian capturing, decide whether to capture without moving or move  
-      if (board[bestMove.srcRow][bestMove.srcCol].type === 'guardian' && bestMove.capture) {  
-        // 50% chance to capture without moving  
-        if (Math.random() < 0.5 && !bestMove.captureOnly) {  
-          board[bestMove.row][bestMove.col] = null; // Remove the captured piece  
-        } else {  
-          // Regular move with capture  
-          board[bestMove.row][bestMove.col] = board[bestMove.srcRow][bestMove.srcCol];  
-          board[bestMove.srcRow][bestMove.srcCol] = null;  
-        }  
-      } else if (bestMove.captureOnly) {  
-        // Handle captureOnly moves (cannon, archer)  
-        board[bestMove.row][bestMove.col] = null; // Remove the captured piece  
-      } else {  
-        // Regular move  
-        board[bestMove.row][bestMove.col] = board[bestMove.srcRow][bestMove.srcCol];  
-        board[bestMove.srcRow][bestMove.srcCol] = null;  
-      }  
-      
-      // Check for win, switch turns, render board  
-      if (!checkForWin()) {  
-        switchTurns();  
-        renderBoard();  
-      }  
+        // If no best move found (shouldn't happen unless all moves lead to lose), pick random or first
+        if (!bestMove && moves.length > 0) {
+           bestMove = moves[Math.floor(Math.random() * moves.length)];
+        }
+
+        // Execute the best move
+        console.log("AI moving:", bestMove, "Value:", bestValue);
+
+        // If it's a captureOnly move, handle it
+        if (bestMove.captureOnly) {
+          board[bestMove.row][bestMove.col] = null;
+        } else {
+          board[bestMove.row][bestMove.col] = board[bestMove.srcRow][bestMove.srcCol];
+          board[bestMove.srcRow][bestMove.srcCol] = null;
+        }
+
+        // Check for win, switch turns, render board
+        if (!checkForWin()) {
+          switchTurns();
+          renderBoard();
+        }
+      }, 50);
     }  
 
     // Toggle instructions visibility  

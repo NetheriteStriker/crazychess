@@ -13,7 +13,7 @@
     
     body {  
       display: flex;  
-      justify-content: flex-start;  
+      justify-content: center;
       align-items: center;  
       min-height: 100vh;  
       margin: 0;  
@@ -22,6 +22,16 @@
       flex-direction: column;  
       padding: 10px;  
     }  
+
+    #main-layout {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 20px;
+      width: 100%;
+      max-width: 1200px;
+    }
     
     #game-container {  
       display: flex;  
@@ -30,6 +40,59 @@
       width: 100%;  
       max-width: 600px;  
     }  
+
+    #left-panel, #right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      width: 200px;
+      padding: 15px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      align-self: flex-start;
+      margin-top: 50px; /* Align somewhat with board */
+    }
+
+    #left-panel button {
+      padding: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #4a6ea9;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+
+    #left-panel button:hover {
+      background-color: #3a5a89;
+    }
+
+    #left-panel button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    #right-panel h3 {
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .stat-item {
+      margin-bottom: 15px;
+    }
+
+    .stat-label {
+      font-weight: bold;
+      font-size: 0.9rem;
+      color: #555;
+    }
+
+    .stat-value {
+      font-size: 1.2rem;
+      color: #333;
+    }
     
     #status {  
       margin: 10px 0;  
@@ -154,55 +217,74 @@
   </style>  
 </head>  
 <body>  
-  <div id="game-container">  
-    <div id="controls">
-      <label for="difficulty-level">Difficulty:</label>
-      <select id="difficulty-level">
-        <option value="easy">Easy (Dumbest)</option>
-        <option value="medium">Medium (Smarter)</option>
-        <option value="advanced">Advanced (Even Smarter)</option>
-        <option value="grandmaster">Grandmaster (Smartest)</option>
-      </select>
+  <div id="main-layout">
+    <div id="left-panel">
+      <button id="take-back-btn">Take Back Move</button>
+      <button id="restart-btn">Restart Game</button>
     </div>
-    <div id="chessboard"></div>  
-    <div id="status">White's turn</div>  
-    <button id="toggle-instructions">Show Instructions</button>  
-    <div id="instructions" class="hidden">  
-      <h2>Special Pieces Instructions</h2>  
-      
-      <h3><img src="assets/pieces/white_guardian.svg" style="width:1.5em;vertical-align:middle;" alt="Guardian"> Guardian</h3>
-      <p>The Guardian moves like a king (one square in any direction) but has a special ability:</p>  
-      <ul>  
-        <li>It can capture adjacent enemy pieces without moving.</li>  
-        <li>When capturing with a Guardian, you'll be asked if you want to capture without moving (select OK) or capture by moving to that square (select Cancel).</li>  
-      </ul>  
 
-      <h3><img src="assets/pieces/white_archer.svg" style="width:1.5em;vertical-align:middle;" alt="Archer"> Archer</h3>
-      <p>The Archer combines movement and ranged attack:</p>  
-      <ul>  
-        <li>Moves like a king (one square in any direction).</li>  
-        <li>Can shoot and capture enemy pieces up to 3 squares away in any direction without moving.</li>  
-        <li>Cannot shoot through other pieces.</li>  
-      </ul>  
+    <div id="game-container">
+      <div id="controls">
+        <label for="difficulty-level">Difficulty:</label>
+        <select id="difficulty-level">
+          <option value="easy">Easy (Dumbest)</option>
+          <option value="medium">Medium (Smarter)</option>
+          <option value="advanced">Advanced (Even Smarter)</option>
+          <option value="grandmaster">Grandmaster (Smartest)</option>
+        </select>
+      </div>
+      <div id="chessboard"></div>
+      <div id="status">White's turn</div>
+      <button id="toggle-instructions">Show Instructions</button>
+      <div id="instructions" class="hidden">
+        <h2>Special Pieces Instructions</h2>
 
-      <h3><img src="assets/pieces/white_cannon.svg" style="width:1.5em;vertical-align:middle;" alt="Cannon"> Cannon</h3>
-      <p>The Cannon is a stationary piece with ranged attack:</p>  
-      <ul>  
-        <li>Cannot move around the board.</li>  
-        <li>Can capture enemy pieces up to 4 squares away in straight lines (not diagonally).</li>  
-        <li>Cannot shoot through other pieces.</li>  
-      </ul>  
+        <h3><img src="assets/pieces/white_guardian.svg" style="width:1.5em;vertical-align:middle;" alt="Guardian"> Guardian</h3>
+        <p>The Guardian moves like a king (one square in any direction) but has a special ability:</p>
+        <ul>
+          <li>It can capture adjacent enemy pieces without moving.</li>
+          <li>When capturing with a Guardian, you'll be asked if you want to capture without moving (select OK) or capture by moving to that square (select Cancel).</li>
+        </ul>
 
-      <h3><img src="assets/pieces/white_wall.svg" style="width:1.5em;vertical-align:middle;" alt="Wall"> Wall</h3>
-      <p>The Wall is a defensive piece with limited mobility:</p>  
-      <ul>  
-        <li>Can move 1-2 squares horizontally or vertically (not diagonally).</li>  
-        <li>Can only move if adjacent to a friendly piece.</li>  
-        <li>Cannot capture other pieces.</li>  
-        <li>Cannot be captured by most pieces (serves as an obstacle).</li>  
-      </ul>  
-    </div>  
-  </div>  
+        <h3><img src="assets/pieces/white_archer.svg" style="width:1.5em;vertical-align:middle;" alt="Archer"> Archer</h3>
+        <p>The Archer combines movement and ranged attack:</p>
+        <ul>
+          <li>Moves like a king (one square in any direction).</li>
+          <li>Can shoot and capture enemy pieces up to 3 squares away in any direction without moving.</li>
+          <li>Cannot shoot through other pieces.</li>
+        </ul>
+
+        <h3><img src="assets/pieces/white_cannon.svg" style="width:1.5em;vertical-align:middle;" alt="Cannon"> Cannon</h3>
+        <p>The Cannon is a stationary piece with ranged attack:</p>
+        <ul>
+          <li>Cannot move around the board.</li>
+          <li>Can capture enemy pieces up to 4 squares away in straight lines (not diagonally).</li>
+          <li>Cannot shoot through other pieces.</li>
+        </ul>
+
+        <h3><img src="assets/pieces/white_wall.svg" style="width:1.5em;vertical-align:middle;" alt="Wall"> Wall</h3>
+        <p>The Wall is a defensive piece with limited mobility:</p>
+        <ul>
+          <li>Can move 1-2 squares horizontally or vertically (not diagonally).</li>
+          <li>Can only move if adjacent to a friendly piece.</li>
+          <li>Cannot capture other pieces.</li>
+          <li>Cannot be captured by most pieces (serves as an obstacle).</li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="right-panel">
+      <h3>AI Thinking Details</h3>
+      <div class="stat-item">
+        <div class="stat-label">Thinking Depth</div>
+        <div class="stat-value" id="ai-depth">-</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Thinking Breadth</div>
+        <div class="stat-value" id="ai-breadth">-</div>
+      </div>
+    </div>
+  </div>
 
   <script>  
     // Game state  
@@ -210,10 +292,20 @@
     let currentPlayer = 'white';  
     let selectedPiece = null;  
     let possibleMoves = [];  
+    let moveHistory = [];
+    let gameEnded = false;
+    let isAIThinking = false;
+    let aiNodesVisited = 0;
 
     // Initialize the board  
     function initializeBoard() {  
       board = Array(10).fill().map(() => Array(8).fill(null));  
+      moveHistory = [];
+      gameEnded = false;
+      isAIThinking = false;
+      aiNodesVisited = 0;
+      updateUIState();
+      currentPlayer = 'white';
       
       // Standard pieces (back rows)  
       // White (bottom)  
@@ -302,10 +394,20 @@
       }  
       
       document.getElementById('status').textContent = currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1) + "'s turn";  
-    }  
+    }
+
+    // Update UI based on state
+    function updateUIState() {
+       const disabled = isAIThinking;
+       document.getElementById('take-back-btn').disabled = disabled;
+       // Restart is allowed during thinking? Maybe not.
+       document.getElementById('restart-btn').disabled = disabled;
+    }
 
     // Handle click on a square  
     function handleSquareClick(row, col) {  
+      if (isAIThinking || gameEnded) return;
+
       const piece = board[row][col];  
       
       // If no piece is selected yet  
@@ -351,22 +453,7 @@
     function askGuardianCaptureMethod(selectedPiece, move) {  
       if (confirm('Do you want to capture without moving? OK for capture without moving, Cancel for capture by replacing.')) {  
         // Capture without moving  
-        const { row, col } = move;  
-        board[row][col] = null; // Remove the captured piece  
-        
-        // Check for win before switching turns  
-        if (checkForWin()) {  
-          return; // Game ended, don't continue  
-        }  
-        
-        // Switch turns and trigger AI  
-        switchTurns();  
-        renderBoard();  
-        
-        // If it's now AI's turn, make AI move  
-        if (currentPlayer === 'black') {  
-          setTimeout(makeAIMove, 500);  
-        }  
+        makeMove({ ...move, captureOnly: true });
       } else {  
         // Capture by replacing (normal move)  
         makeMove(move);  
@@ -376,8 +463,18 @@
     // Make a move  
     function makeMove(move) {  
       const { srcRow, srcCol, row, col, captureOnly } = move;  
+      const capturedPiece = board[row][col];
+      const movedPiece = board[srcRow][srcCol];
+
+      // Record history
+      moveHistory.push({
+        move: move,
+        capturedPiece: capturedPiece,
+        movedPiece: movedPiece,
+        prevPlayer: currentPlayer
+      });
       
-      // If it's a captureOnly move (used by archer, cannon)  
+      // If it's a captureOnly move (used by archer, cannon, guardian special)
       if (captureOnly) {  
         board[row][col] = null; // Remove the captured piece  
       } else {  
@@ -391,6 +488,7 @@
       
       // Check for win before switching turns  
       if (checkForWin()) {  
+        renderBoard();
         return; // Game ended, don't continue  
       }  
       
@@ -399,10 +497,65 @@
       renderBoard();  
       
       // If it's now AI's turn, make AI move  
-      if (currentPlayer === 'black') {  
+      if (currentPlayer === 'black' && !gameEnded) {
+        isAIThinking = true;
+        updateUIState();
         setTimeout(makeAIMove, 500); // Small delay to make AI move visible  
       }  
-    }  
+    }
+
+    // Undo the last move
+    function undoLastMove() {
+      if (moveHistory.length === 0) return;
+
+      const lastState = moveHistory.pop();
+      const { move, capturedPiece, movedPiece, prevPlayer } = lastState;
+      const { srcRow, srcCol, row, col, captureOnly } = move;
+
+      // Revert board
+      if (captureOnly) {
+        board[row][col] = capturedPiece;
+      } else {
+        board[srcRow][srcCol] = movedPiece;
+        board[row][col] = capturedPiece;
+      }
+
+      currentPlayer = prevPlayer;
+      gameEnded = false; // Undo always reopens the game if it was ended
+
+      clearHighlights();
+      selectedPiece = null;
+      renderBoard();
+    }
+
+    function handleTakeBack() {
+      if (isAIThinking) return;
+
+      // If history empty, do nothing
+      if (moveHistory.length === 0) return;
+
+      // If game ended
+      if (gameEnded) {
+          // If current player is black, it means Black made the last move and won.
+          if (currentPlayer === 'black') {
+              undoLastMove(); // Back to Black's pre-move state
+              undoLastMove(); // Back to White's turn
+          } else {
+              // White won
+              undoLastMove(); // Back to White's pre-move state
+          }
+      } else {
+          // Game in progress
+          if (currentPlayer === 'white') {
+              // Standard case: User's turn. Undo AI then User.
+              undoLastMove(); // Undo AI
+              undoLastMove(); // Undo User
+          } else {
+              // Black's turn (User just moved, AI failed/paused?)
+              undoLastMove();
+          }
+      }
+    }
 
     // Get all possible moves for a piece  
     function getPossibleMoves(row, col, piece) {  
@@ -793,16 +946,12 @@
       }  
       
       if (!whiteKingExists) {  
-        alert('Black wins! White king has been captured.');  
-        initializeBoard();  
-        currentPlayer = 'white';  
-        renderBoard();  
+        document.getElementById('status').textContent = 'Black wins! White king has been captured.';
+        gameEnded = true;
         return true;  
       } else if (!blackKingExists) {  
-        alert('White wins! Black king has been captured.');  
-        initializeBoard();  
-        currentPlayer = 'white';  
-        renderBoard();  
+        document.getElementById('status').textContent = 'White wins! Black king has been captured.';
+        gameEnded = true;
         return true;  
       }  
       
@@ -882,6 +1031,7 @@
     }
 
     function minimax(depth, alpha, beta, isMaximizing) {
+      aiNodesVisited++;
       if (depth === 0) {
         return evaluateBoard();
       }
@@ -953,6 +1103,7 @@
 
       // Use setTimeout to allow the UI to update
       setTimeout(() => {
+        aiNodesVisited = 0;
         const moves = getAllMoves('black');
         
         if (moves.length === 0) {
@@ -998,19 +1149,14 @@
         // Execute the best move
         console.log("AI moving:", bestMove, "Value:", bestValue);
 
-        // If it's a captureOnly move, handle it
-        if (bestMove.captureOnly) {
-          board[bestMove.row][bestMove.col] = null;
-        } else {
-          board[bestMove.row][bestMove.col] = board[bestMove.srcRow][bestMove.srcCol];
-          board[bestMove.srcRow][bestMove.srcCol] = null;
-        }
+        // Update stats
+        document.getElementById('ai-depth').textContent = depth;
+        document.getElementById('ai-breadth').textContent = aiNodesVisited;
 
-        // Check for win, switch turns, render board
-        if (!checkForWin()) {
-          switchTurns();
-          renderBoard();
-        }
+        // Execute the move using the centralized function
+        makeMove(bestMove);
+        isAIThinking = false;
+        updateUIState();
       }, 50);
     }  
 
@@ -1032,13 +1178,28 @@
     function startGame() {  
       initializeBoard();  
       renderBoard();  
-      
-      // Add event listener for instructions toggle button  
-      document.getElementById('toggle-instructions').addEventListener('click', toggleInstructions);  
     }  
 
+    function handleRestart() {
+      if (isAIThinking) return;
+
+      if (!gameEnded && moveHistory.length > 0) {
+        if (!confirm('Are you sure you want to restart the game?')) {
+          return;
+        }
+      }
+      startGame();
+    }
+
     // When the page loads, start the game  
-    window.onload = startGame;  
+    window.onload = () => {
+      startGame();
+
+      // Add event listener for instructions toggle button
+      document.getElementById('toggle-instructions').addEventListener('click', toggleInstructions);
+      document.getElementById('take-back-btn').addEventListener('click', handleTakeBack);
+      document.getElementById('restart-btn').addEventListener('click', handleRestart);
+    };
   </script>  
 </body>  
 </html>
